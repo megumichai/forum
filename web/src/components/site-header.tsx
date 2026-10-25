@@ -75,7 +75,8 @@ export function SiteHeader() {
                 </Link>
               </Button>
               <Link
-                to={`/u/${user.username}`}
+                to="/me"
+                aria-label="个人中心"
                 className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent"
               >
                 <UserAvatar

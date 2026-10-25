@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Author } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,9 @@ export function UserAvatar({
   className,
   fallbackClassName,
 }: {
-  user: Pick<Author, "display_name" | "username">;
+  user: Pick<Author, "display_name" | "username"> & {
+    avatar_url?: string | null;
+  };
   className?: string;
   fallbackClassName?: string;
 }) {
@@ -16,6 +18,7 @@ export function UserAvatar({
 
   return (
     <Avatar className={cn("size-10", className)}>
+      <AvatarImage src={user.avatar_url ?? undefined} alt={name} />
       <AvatarFallback className={cn("text-sm", fallbackClassName)}>
         {initial}
       </AvatarFallback>

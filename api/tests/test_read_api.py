@@ -126,3 +126,28 @@ def test_get_user(client: TestClient) -> None:
 def test_get_missing_user(client: TestClient) -> None:
     response = client.get("/api/users/missing")
     assert response.status_code == 404
+
+
+def test_list_user_topics(client: TestClient) -> None:
+    response = client.get("/api/users/admin/topics")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["title"] == "Hello"
+    assert body["items"][0]["reply_count"] == 1
+    assert body["items"][0]["author"]["username"] == "admin"
+
+
+def test_list_user_posts(client: TestClient) -> None:
+    response = client.get("/api/users/admin/posts")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["items"][0]["content"] == "First reply"
+    assert body["items"][0]["topic"]["id"] == 1
+    assert body["items"][0]["topic"]["title"] == "Hello"
+
+
+def test_list_missing_user_content(client: TestClient) -> None:
+    assert client.get("/api/users/missing/topics").status_code == 404
+    assert client.get("/api/users/missing/posts").status_code == 404

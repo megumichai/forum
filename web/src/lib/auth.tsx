@@ -12,6 +12,7 @@ import {
   api,
   type AuthUser,
   type LoginInput,
+  type ProfileUpdateInput,
   type RegisterInput,
 } from "./api";
 
@@ -20,6 +21,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (payload: LoginInput) => Promise<AuthUser>;
   register: (payload: RegisterInput) => Promise<AuthUser>;
+  updateProfile: (payload: ProfileUpdateInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
 
@@ -61,14 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, []);
 
+  const updateProfile = useCallback(
+    async (payload: ProfileUpdateInput) => {
+      const data = await api.updateProfile(payload);
+      setUser(data);
+      return data;
+    },
+    [],
+  );
+
   const logout = useCallback(async () => {
     await api.logout();
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, updateProfile, logout }),
+    [user, loading, login, register, updateProfile, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

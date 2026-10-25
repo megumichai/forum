@@ -7,6 +7,7 @@ export interface AuthUser {
   username: string;
   email: string;
   display_name: string;
+  avatar_url: string | null;
   role: Role;
   bio: string | null;
   created_at: string;
@@ -16,6 +17,7 @@ export interface Author {
   id: number;
   username: string;
   display_name: string;
+  avatar_url: string | null;
   role: Role;
 }
 
@@ -52,6 +54,17 @@ export interface Post {
   created_at: string;
   updated_at: string;
   author: Author;
+}
+
+export interface UserPost {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  topic: {
+    id: number;
+    title: string;
+  };
 }
 
 export interface TopicDetail extends TopicSummary {
@@ -91,6 +104,18 @@ export interface TopicUpdateInput {
 
 export interface PostInput {
   content: string;
+}
+
+export interface ProfileUpdateInput {
+  display_name?: string;
+  email?: string;
+  bio?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface PasswordChangeInput {
+  current_password: string;
+  new_password: string;
 }
 
 export interface LoginInput {
@@ -212,7 +237,25 @@ export const api = {
     request<void>(`/posts/${id}`, { method: "DELETE" }),
   user: (username: string) =>
     request<UserProfile>(`/users/${encodeURIComponent(username)}`),
+  userTopics: (username: string, page = 1, pageSize = 20) =>
+    request<Page<TopicSummary>>(
+      `/users/${encodeURIComponent(username)}/topics?page=${page}&page_size=${pageSize}`,
+    ),
+  userPosts: (username: string, page = 1, pageSize = 20) =>
+    request<Page<UserPost>>(
+      `/users/${encodeURIComponent(username)}/posts?page=${page}&page_size=${pageSize}`,
+    ),
   me: () => request<AuthUser>("/auth/me"),
+  updateProfile: (payload: ProfileUpdateInput) =>
+    request<AuthUser>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  changePassword: (payload: PasswordChangeInput) =>
+    request<void>("/auth/password", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   login: (payload: LoginInput) =>
     request<AuthUser>("/auth/login", {
       method: "POST",

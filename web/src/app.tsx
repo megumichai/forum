@@ -1,13 +1,16 @@
 import { Route, Routes } from "react-router-dom";
 
+import { RequireAuth } from "@/components/require-auth";
 import { SiteLayout } from "@/components/site-layout";
 import { CategoriesPage } from "@/pages/categories-page";
 import { CategoryPage } from "@/pages/category-page";
 import { HomePage } from "@/pages/home-page";
 import { LoginPage } from "@/pages/login-page";
+import { MePage } from "@/pages/me-page";
 import { NewTopicPage } from "@/pages/new-topic-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { RegisterPage } from "@/pages/register-page";
+import { SettingsPage } from "@/pages/settings-page";
 import { TopicPage } from "@/pages/topic-page";
 import { UserPage } from "@/pages/user-page";
 
@@ -23,6 +26,10 @@ export function App() {
         <Route path="new" element={<NewTopicPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="me" element={<MePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

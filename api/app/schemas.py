@@ -20,6 +20,15 @@ Content = Annotated[
     str,
     StringConstraints(strip_whitespace=True, min_length=1, max_length=50000),
 ]
+DisplayName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)
+]
+BioText = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=2000)
+]
+AvatarUrl = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=500)
+]
 
 
 class ORMModel(BaseModel):
@@ -30,6 +39,7 @@ class AuthorRead(ORMModel):
     id: int
     username: str
     display_name: str
+    avatar_url: str | None
     role: UserRole
 
 
@@ -45,6 +55,7 @@ class UserPrivate(ORMModel):
     username: str
     email: str
     display_name: str
+    avatar_url: str | None
     role: UserRole
     bio: str | None
     created_at: datetime
@@ -62,6 +73,18 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=128)
+
+
+class ProfileUpdate(BaseModel):
+    display_name: DisplayName | None = None
+    email: EmailStr | None = None
+    bio: BioText | None = None
+    avatar_url: AvatarUrl | None = None
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class TopicCreate(BaseModel):
@@ -99,6 +122,19 @@ class PostRead(ORMModel):
     created_at: datetime
     updated_at: datetime
     author: AuthorRead
+
+
+class TopicRef(ORMModel):
+    id: int
+    title: str
+
+
+class UserPostRead(ORMModel):
+    id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+    topic: TopicRef
 
 
 class TopicSummary(ORMModel):
