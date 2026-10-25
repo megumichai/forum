@@ -66,7 +66,6 @@ def test_create_topic_and_reply(client: TestClient) -> None:
     detail = client.get(f"/api/topics/{topic['id']}")
     assert detail.status_code == 200
     assert detail.json()["reply_count"] == 1
-    assert detail.json()["view_count"] == 1
 
 
 def test_reply_requires_auth(client: TestClient) -> None:

@@ -22,7 +22,6 @@ class BaseModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=utcnow,
-        onupdate=utcnow,
         nullable=False,
         sort_order=2,
     )

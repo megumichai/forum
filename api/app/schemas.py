@@ -116,7 +116,10 @@ class TopicSummary(ORMModel):
 
 class TopicDetail(TopicSummary):
     content: str
-    posts: list[PostRead]
+
+
+class ViewCount(BaseModel):
+    view_count: int
 
 
 class Page(BaseModel, Generic[T]):

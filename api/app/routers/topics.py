@@ -14,6 +14,7 @@ from ..schemas import (
     TopicDetail,
     TopicSummary,
     TopicUpdate,
+    ViewCount,
 )
 
 router = APIRouter(prefix="/topics", tags=["topics"])
@@ -72,18 +73,29 @@ def get_topic(topic_id: int, session: SessionDep):
         .options(
             selectinload(Topic.author),
             selectinload(Topic.category),
-            selectinload(Topic.posts).selectinload(Post.author),
         )
         .where(Topic.id == topic_id)
     )
     if topic is None:
         raise HTTPException(status_code=404, detail="Topic not found")
 
+    reply_count = (
+        session.scalar(
+            select(func.count(Post.id)).where(Post.topic_id == topic.id)
+        )
+        or 0
+    )
+    return TopicDetail.model_validate(topic).model_copy(
+        update={"reply_count": reply_count}
+    )
+
+
+@router.post("/{topic_id}/view", response_model=ViewCount)
+def count_view(topic_id: int, session: SessionDep) -> ViewCount:
+    topic = _get_topic(session, topic_id)
     topic.view_count += 1
     session.commit()
-    return TopicDetail.model_validate(topic).model_copy(
-        update={"reply_count": len(topic.posts)}
-    )
+    return ViewCount(view_count=topic.view_count)
 
 
 @router.get("/{topic_id}/posts", response_model=Page[PostRead])
@@ -163,6 +175,7 @@ def update_topic(
     if payload.is_locked is not None:
         topic.is_locked = payload.is_locked
 
+    topic.updated_at = utcnow()
     session.commit()
 
     reply_count = (

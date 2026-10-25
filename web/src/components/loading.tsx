@@ -19,6 +19,16 @@ export function TopicListSkeleton() {
   );
 }
 
+export function PostListSkeleton() {
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <Skeleton key={index} className="h-32 w-full rounded-md" />
+      ))}
+    </div>
+  );
+}
+
 export function DetailSkeleton() {
   return (
     <div className="space-y-4">

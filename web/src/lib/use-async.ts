@@ -18,7 +18,9 @@ export function useAsync<T>(
 
   useEffect(() => {
     let active = true;
-    setState({ status: "loading" });
+    setState((current) =>
+      current.status === "success" ? current : { status: "loading" },
+    );
 
     fetcher()
       .then((data) => {

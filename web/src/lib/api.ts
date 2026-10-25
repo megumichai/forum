@@ -56,7 +56,10 @@ export interface Post {
 
 export interface TopicDetail extends TopicSummary {
   content: string;
-  posts: Post[];
+}
+
+export interface ViewCount {
+  view_count: number;
 }
 
 export interface Page<T> {
@@ -177,6 +180,8 @@ export const api = {
   topics: (query: TopicQuery = {}) =>
     request<Page<TopicSummary>>(`/topics?${toQuery(query)}`),
   topic: (id: number) => request<TopicDetail>(`/topics/${id}`),
+  viewTopic: (id: number) =>
+    request<ViewCount>(`/topics/${id}/view`, { method: "POST" }),
   topicPosts: (id: number, page = 1, pageSize = 20) =>
     request<Page<Post>>(
       `/topics/${id}/posts?page=${page}&page_size=${pageSize}`,

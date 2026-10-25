@@ -1,9 +1,14 @@
 import { Eye, Lock, MessageSquare, Pencil, Pin, Trash2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { DetailSkeleton, ErrorState } from "@/components/loading";
+import {
+  DetailSkeleton,
+  ErrorState,
+  PostListSkeleton,
+} from "@/components/loading";
+import { Pagination } from "@/components/pagination";
 import { PostCard } from "@/components/post-card";
 import { RoleBadge } from "@/components/role-badge";
 import { UserAvatar } from "@/components/user-avatar";
@@ -17,13 +22,22 @@ import { useAuth } from "@/lib/auth";
 import { useAsync } from "@/lib/use-async";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
+const PAGE_SIZE = 20;
+
 export function TopicPage() {
   const { id = "" } = useParams();
   const topicId = Number(id);
   const topic = useAsync(() => api.topic(topicId), [topicId]);
+  const [page, setPage] = useState(1);
+  const posts = useAsync(
+    () => api.topicPosts(topicId, page, PAGE_SIZE),
+    [topicId, page],
+  );
   const { user } = useAuth();
   const navigate = useNavigate();
+  const repliesRef = useRef<HTMLElement>(null);
 
+  const [viewCount, setViewCount] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -33,6 +47,23 @@ export function TopicPage() {
   const [reply, setReply] = useState("");
   const [replyError, setReplyError] = useState<string | null>(null);
   const [replying, setReplying] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .viewTopic(topicId)
+      .then((result) => {
+        if (active) setViewCount(result.view_count);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [topicId]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [topicId]);
 
   if (topic.status === "loading") return <DetailSkeleton />;
 
@@ -44,6 +75,8 @@ export function TopicPage() {
   const staff = user?.role === "admin" || user?.role === "moderator";
   const canManageTopic = user !== null && (user.id === data.author.id || staff);
   const canReply = user !== null && (!data.is_locked || staff);
+  const displayedPage = posts.status === "success" ? posts.data.page : page;
+  const displayedViews = Math.max(data.view_count, viewCount ?? 0);
 
   const startEditing = () => {
     setEditTitle(data.title);
@@ -85,6 +118,11 @@ export function TopicPage() {
     }
   };
 
+  const refreshPosts = () => {
+    posts.reload();
+    topic.reload();
+  };
+
   const handleReply = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!reply.trim()) return;
@@ -95,6 +133,16 @@ export function TopicPage() {
       await api.createPost(topicId, { content: reply });
       setReply("");
       topic.reload();
+
+      const lastPage = Math.max(
+        1,
+        Math.ceil((data.reply_count + 1) / PAGE_SIZE),
+      );
+      if (lastPage === page) {
+        posts.reload();
+      } else {
+        setPage(lastPage);
+      }
     } catch (submitError) {
       setReplyError(
         submitError instanceof Error ? submitError.message : "回复失败",
@@ -102,6 +150,14 @@ export function TopicPage() {
     } finally {
       setReplying(false);
     }
+  };
+
+  const changePage = (next: number) => {
+    setPage(next);
+    repliesRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   return (
@@ -177,7 +233,7 @@ export function TopicPage() {
           </span>
           <span className="inline-flex items-center gap-1">
             <Eye className="size-3.5" />
-            {formatCount(data.view_count)}
+            {formatCount(displayedViews)}
           </span>
         </div>
 
@@ -260,31 +316,50 @@ export function TopicPage() {
         </Card>
       )}
 
-      <section className="mt-8">
+      <section ref={repliesRef} className="mt-8 scroll-mt-20">
         <h2 className="text-sm font-medium">
           回复
           <span className="ml-1.5 font-normal text-muted-foreground">
-            {data.posts.length}
+            {data.reply_count}
           </span>
         </h2>
 
-        {data.posts.length === 0 ? (
-          <Card className="mt-3 py-0">
-            <CardContent className="px-6 py-10 text-center text-sm text-muted-foreground">
-              还没有回复。
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="mt-3 flex flex-col gap-3">
-            {data.posts.map((post, index) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                floor={index + 1}
-                onChanged={topic.reload}
-              />
-            ))}
-          </div>
+        {posts.status === "loading" && <PostListSkeleton />}
+
+        {posts.status === "error" && (
+          <ErrorState message={posts.error.message} onRetry={posts.reload} />
+        )}
+
+        {posts.status === "success" && (
+          <>
+            {posts.data.items.length === 0 ? (
+              <Card className="mt-3 py-0">
+                <CardContent className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  还没有回复。
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="mt-3 flex flex-col gap-3">
+                {posts.data.items.map((post, index) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    floor={
+                      (displayedPage - 1) * PAGE_SIZE + index + 1
+                    }
+                    onChanged={refreshPosts}
+                  />
+                ))}
+              </div>
+            )}
+
+            <Pagination
+              page={displayedPage}
+              pageSize={PAGE_SIZE}
+              total={posts.data.total}
+              onPageChange={changePage}
+            />
+          </>
         )}
 
         {canReply ? (

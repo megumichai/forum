@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..deps import CurrentUser, SessionDep
 from ..models import Post
+from ..models.base import utcnow
 from ..permissions import can_manage
 from ..schemas import PostRead, PostUpdate
 
@@ -28,6 +29,7 @@ def update_post(
         raise HTTPException(status_code=403, detail="Not allowed")
 
     post.content = payload.content
+    post.updated_at = utcnow()
     session.commit()
     return post
 
