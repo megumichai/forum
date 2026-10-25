@@ -29,7 +29,7 @@ def list_topics(
     statement = (
         select(Topic, func.count(Post.id))
         .outerjoin(Post, Post.topic_id == Topic.id)
-        .options(selectinload(Topic.author))
+        .options(selectinload(Topic.author), selectinload(Topic.category))
         .where(*filters)
         .group_by(Topic.id)
         .order_by(

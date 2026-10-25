@@ -50,12 +50,12 @@ class TopicSummary(ORMModel):
     reply_count: int = 0
     created_at: datetime
     updated_at: datetime
+    category: CategoryRead
     author: AuthorRead
 
 
 class TopicDetail(TopicSummary):
     content: str
-    category: CategoryRead
     posts: list[PostRead]
 
 
