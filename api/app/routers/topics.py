@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..deps import CurrentUser, SessionDep
 from ..models import Category, Post, Topic
 from ..models.base import utcnow
-from ..permissions import can_manage, is_staff
+from ..permissions import can_manage, can_use_category, is_staff
 from ..schemas import (
     Page,
     PostCreate,
@@ -134,6 +134,10 @@ def create_topic(
     category = session.get(Category, payload.category_id)
     if category is None:
         raise HTTPException(status_code=404, detail="Category not found")
+    if not can_use_category(user, category.min_role):
+        raise HTTPException(
+            status_code=403, detail="无权在该分类发布话题"
+        )
 
     topic = Topic(
         category=category,
@@ -169,6 +173,10 @@ def update_topic(
         category = session.get(Category, payload.category_id)
         if category is None:
             raise HTTPException(status_code=404, detail="Category not found")
+        if not can_use_category(user, category.min_role):
+            raise HTTPException(
+                status_code=403, detail="无权使用该分类"
+            )
         topic.category = category
     if payload.is_pinned is not None:
         topic.is_pinned = payload.is_pinned

@@ -27,6 +27,40 @@ def register(client: TestClient, username: str = "member") -> dict:
     return response.json()
 
 
+def create_category(
+    client: TestClient,
+    name: str,
+    slug: str,
+    min_role: str | None = None,
+) -> dict:
+    response = client.post(
+        "/api/admin/categories",
+        json={
+            "name": name,
+            "slug": slug,
+            "description": f"{name} 分类",
+            "min_role": min_role,
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def create_topic(
+    client: TestClient, category_id: int, title: str
+) -> dict:
+    response = client.post(
+        "/api/topics",
+        json={
+            "category_id": category_id,
+            "title": title,
+            "content": "Topic content",
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
 def test_admin_requires_auth(client: TestClient) -> None:
     assert client.get("/api/admin/stats").status_code == 401
 
@@ -140,3 +174,158 @@ def test_admin_creates_announcement(client: TestClient) -> None:
         "/api/topics", params={"category": "announcements"}
     )
     assert listed.json()["total"] == 1
+
+
+def test_admin_creates_category(client: TestClient) -> None:
+    login(client)
+
+    response = client.post(
+        "/api/admin/categories",
+        json={
+            "name": "管理区",
+            "slug": "staff-zone",
+            "description": "Only admins can use this category",
+            "min_role": "admin",
+        },
+    )
+    assert response.status_code == 201
+    category = response.json()
+    assert category["slug"] == "staff-zone"
+    assert category["min_role"] == "admin"
+    assert category["topic_count"] == 0
+
+    listed = client.get("/api/admin/categories")
+    assert listed.status_code == 200
+    assert any(item["id"] == category["id"] for item in listed.json())
+
+    duplicate = client.post(
+        "/api/admin/categories",
+        json={"name": "管理区", "slug": "another-slug"},
+    )
+    assert duplicate.status_code == 409
+
+
+def test_non_admin_cannot_manage_categories(client: TestClient) -> None:
+    register(client)
+
+    created = client.post(
+        "/api/admin/categories",
+        json={"name": "用户区", "slug": "user-zone"},
+    )
+    assert created.status_code == 403
+    assert client.get("/api/admin/categories").status_code == 403
+
+
+def test_admin_updates_category_access(client: TestClient) -> None:
+    login(client)
+    category = create_category(client, "会员区", "members", "user")
+
+    updated = client.patch(
+        f"/api/admin/categories/{category['id']}",
+        json={"min_role": "moderator"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["min_role"] == "moderator"
+
+    cleared = client.patch(
+        f"/api/admin/categories/{category['id']}", json={"min_role": None}
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["min_role"] is None
+
+
+def test_category_access_control(client: TestClient) -> None:
+    login(client)
+    member = register(client)
+    login(client)
+
+    members = create_category(client, "会员区", "members", "user")
+    moderators = create_category(client, "版主区", "moderators", "moderator")
+    staff_only = create_category(client, "管理区", "admin-only", "admin")
+
+    members_topic = create_topic(client, members["id"], "Members topic")
+    admin_topic = create_topic(client, staff_only["id"], "Admin topic")
+
+    client.cookies.clear()
+    anonymous_slugs = {
+        category["slug"]
+        for category in client.get("/api/categories").json()
+    }
+    assert "members" in anonymous_slugs
+    assert "moderators" in anonymous_slugs
+    assert "admin-only" in anonymous_slugs
+    assert client.get("/api/categories/members").status_code == 200
+    assert client.get(f"/api/topics/{members_topic['id']}").status_code == 200
+    assert client.get(f"/api/topics/{admin_topic['id']}").status_code == 200
+    assert client.get("/api/users/admin/topics").json()["total"] == 3
+    assert (
+        client.get(
+            "/api/categories", params={"for_posting": True}
+        ).status_code
+        == 401
+    )
+
+    login(client, identifier="member", password="password123")
+    member_postable = {
+        category["slug"]
+        for category in client.get(
+            "/api/categories", params={"for_posting": True}
+        ).json()
+    }
+    assert "members" in member_postable
+    assert "moderators" not in member_postable
+    assert "admin-only" not in member_postable
+
+    blocked = client.post(
+        "/api/topics",
+        json={
+            "category_id": staff_only["id"],
+            "title": "Blocked topic",
+            "content": "Should not be created",
+        },
+    )
+    assert blocked.status_code == 403
+    assert (
+        client.post(
+            "/api/topics",
+            json={
+                "category_id": moderators["id"],
+                "title": "Blocked moderator topic",
+                "content": "Should not be created",
+            },
+        ).status_code
+        == 403
+    )
+
+    allowed = create_topic(client, members["id"], "Member topic")
+    assert allowed["category"]["slug"] == "members"
+    assert client.get(f"/api/topics/{admin_topic['id']}").status_code == 200
+
+    login(client, identifier="admin", password="admin123")
+    promoted = client.patch(
+        f"/api/admin/users/{member['id']}/role",
+        json={"role": "moderator"},
+    )
+    assert promoted.status_code == 200
+
+    login(client, identifier="member", password="password123")
+    moderator_postable = {
+        category["slug"]
+        for category in client.get(
+            "/api/categories", params={"for_posting": True}
+        ).json()
+    }
+    assert "moderators" in moderator_postable
+    assert "admin-only" not in moderator_postable
+    create_topic(client, moderators["id"], "Moderator topic")
+
+    login(client, identifier="admin", password="admin123")
+    admin_postable = {
+        category["slug"]
+        for category in client.get(
+            "/api/categories", params={"for_posting": True}
+        ).json()
+    }
+    assert "admin-only" in admin_postable
+    create_topic(client, staff_only["id"], "Admin-created topic")
+    assert moderators["min_role"] == "moderator"

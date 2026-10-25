@@ -29,6 +29,21 @@ BioText = Annotated[
 AvatarUrl = Annotated[
     str, StringConstraints(strip_whitespace=True, max_length=500)
 ]
+CategoryName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)
+]
+CategorySlug = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=64,
+        pattern=r"^[a-z0-9-]+$",
+    ),
+]
+CategoryDescription = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=500)
+]
 
 
 class ORMModel(BaseModel):
@@ -163,6 +178,29 @@ class Page(BaseModel, Generic[T]):
     total: int
     page: int
     page_size: int
+
+
+class AdminCategoryRead(ORMModel):
+    id: int
+    name: str
+    slug: str
+    description: str | None
+    min_role: UserRole | None
+    topic_count: int = 0
+
+
+class AdminCategoryCreate(BaseModel):
+    name: CategoryName
+    slug: CategorySlug
+    description: CategoryDescription | None = None
+    min_role: UserRole | None = None
+
+
+class AdminCategoryUpdate(BaseModel):
+    name: CategoryName | None = None
+    slug: CategorySlug | None = None
+    description: CategoryDescription | None = None
+    min_role: UserRole | None = None
 
 
 class AdminUserRead(ORMModel):

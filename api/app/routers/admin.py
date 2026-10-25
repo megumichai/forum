@@ -2,12 +2,16 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from ..deps import AdminUser, SessionDep, get_current_admin
 from ..models import Category, Post, Topic, User, UserRole
 from ..models.base import utcnow
 from ..schemas import (
+    AdminCategoryCreate,
+    AdminCategoryRead,
+    AdminCategoryUpdate,
     AdminPostRead,
     AdminStats,
     AdminTopicUpdate,
@@ -69,6 +73,139 @@ def _admin_user_read(session: Session, user: User) -> AdminUserRead:
     return AdminUserRead.model_validate(user).model_copy(
         update={"topic_count": topic_count, "post_count": post_count}
     )
+
+
+def _admin_category_read(
+    session: Session, category: Category
+) -> AdminCategoryRead:
+    topic_count = (
+        session.scalar(
+            select(func.count(Topic.id)).where(
+                Topic.category_id == category.id
+            )
+        )
+        or 0
+    )
+    return AdminCategoryRead.model_validate(category).model_copy(
+        update={"topic_count": topic_count}
+    )
+
+
+@router.get("/categories", response_model=list[AdminCategoryRead])
+def list_categories(session: SessionDep):
+    rows = session.execute(
+        select(Category, func.count(Topic.id))
+        .outerjoin(Topic, Topic.category_id == Category.id)
+        .group_by(Category.id)
+        .order_by(Category.id)
+    ).all()
+    return [
+        AdminCategoryRead.model_validate(category).model_copy(
+            update={"topic_count": topic_count}
+        )
+        for category, topic_count in rows
+    ]
+
+
+@router.post(
+    "/categories",
+    response_model=AdminCategoryRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_category(
+    payload: AdminCategoryCreate, session: SessionDep
+) -> AdminCategoryRead:
+    existing = session.scalar(
+        select(Category).where(
+            or_(
+                Category.name == payload.name,
+                Category.slug == payload.slug,
+            )
+        )
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="分类名称或标识已存在",
+        )
+
+    category = Category(
+        name=payload.name,
+        slug=payload.slug,
+        description=payload.description or None,
+        min_role=payload.min_role,
+    )
+    session.add(category)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="分类名称或标识已存在",
+        ) from None
+    return _admin_category_read(session, category)
+
+
+@router.patch(
+    "/categories/{category_id}", response_model=AdminCategoryRead
+)
+def update_category(
+    category_id: int,
+    payload: AdminCategoryUpdate,
+    session: SessionDep,
+) -> AdminCategoryRead:
+    category = session.get(Category, category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    fields = payload.model_fields_set
+
+    if "name" in fields and payload.name is not None:
+        existing = session.scalar(
+            select(Category).where(
+                Category.name == payload.name,
+                Category.id != category_id,
+            )
+        )
+        if existing is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="分类名称已存在",
+            )
+        category.name = payload.name
+
+    if "slug" in fields and payload.slug is not None:
+        existing = session.scalar(
+            select(Category).where(
+                Category.slug == payload.slug,
+                Category.id != category_id,
+            )
+        )
+        if existing is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="分类标识已存在",
+            )
+        category.slug = payload.slug
+
+    if "description" in fields:
+        category.description = payload.description or None
+
+    if "min_role" in fields:
+        category.min_role = payload.min_role
+
+    category.updated_at = utcnow()
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="分类名称或标识已存在",
+        ) from None
+
+    return _admin_category_read(session, category)
 
 
 @router.get("/stats", response_model=AdminStats)

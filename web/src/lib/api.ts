@@ -71,6 +71,15 @@ export interface AdminStats {
   categories: AdminCategoryStats[];
 }
 
+export interface AdminCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  min_role: Role | null;
+  topic_count: number;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -154,6 +163,20 @@ export interface AdminTopicUpdateInput {
 export interface AnnouncementInput {
   title: string;
   content: string;
+}
+
+export interface AdminCategoryInput {
+  name: string;
+  slug: string;
+  description?: string | null;
+  min_role: Role | null;
+}
+
+export interface AdminCategoryUpdateInput {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  min_role?: Role | null;
 }
 
 export interface TopicCreateInput {
@@ -268,6 +291,8 @@ function toQuery({ category, page = 1, pageSize = 20 }: TopicQuery) {
 
 export const api = {
   categories: () => request<Category[]>("/categories"),
+  postableCategories: () =>
+    request<Category[]>("/categories?for_posting=true"),
   category: (slug: string) =>
     request<Category>(`/categories/${encodeURIComponent(slug)}`),
   topics: (query: TopicQuery = {}) =>
@@ -314,6 +339,18 @@ export const api = {
       `/users/${encodeURIComponent(username)}/posts?page=${page}&page_size=${pageSize}`,
     ),
   adminStats: () => request<AdminStats>("/admin/stats"),
+  adminCategories: () =>
+    request<AdminCategory[]>("/admin/categories"),
+  adminCreateCategory: (payload: AdminCategoryInput) =>
+    request<AdminCategory>("/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  adminUpdateCategory: (id: number, payload: AdminCategoryUpdateInput) =>
+    request<AdminCategory>(`/admin/categories/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   adminUsers: ({
     page = 1,
     pageSize = 20,

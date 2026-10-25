@@ -5,6 +5,7 @@ import { RequireAdmin } from "@/components/require-admin";
 import { RequireAuth } from "@/components/require-auth";
 import { SiteLayout } from "@/components/site-layout";
 import { AdminAnnouncementsPage } from "@/pages/admin-announcements-page";
+import { AdminCategoriesPage } from "@/pages/admin-categories-page";
 import { AdminDashboardPage } from "@/pages/admin-dashboard-page";
 import { AdminPostsPage } from "@/pages/admin-posts-page";
 import { AdminTopicsPage } from "@/pages/admin-topics-page";
@@ -43,6 +44,7 @@ export function App() {
       <Route element={<RequireAdmin />}>
         <Route element={<AdminLayout />}>
           <Route path="admin" element={<AdminDashboardPage />} />
+          <Route path="admin/categories" element={<AdminCategoriesPage />} />
           <Route path="admin/topics" element={<AdminTopicsPage />} />
           <Route path="admin/posts" element={<AdminPostsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />

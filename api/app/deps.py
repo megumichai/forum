@@ -11,10 +11,14 @@ from .security import decode_access_token
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-def get_current_user(request: Request, session: SessionDep) -> User:
+def _user_from_request(request: Request, session: Session) -> User | None:
     token = request.cookies.get(settings.session_cookie)
     user_id = decode_access_token(token) if token else None
-    user = session.get(User, user_id) if user_id is not None else None
+    return session.get(User, user_id) if user_id is not None else None
+
+
+def get_current_user(request: Request, session: SessionDep) -> User:
+    user = _user_from_request(request, session)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -23,7 +27,12 @@ def get_current_user(request: Request, session: SessionDep) -> User:
     return user
 
 
+def get_optional_user(request: Request, session: SessionDep) -> User | None:
+    return _user_from_request(request, session)
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
+OptionalUser = Annotated[User | None, Depends(get_optional_user)]
 
 
 def get_current_admin(user: CurrentUser) -> User:

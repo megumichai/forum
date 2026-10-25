@@ -15,7 +15,7 @@ import { useAsync } from "@/lib/use-async";
 export function NewTopicPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const categories = useAsync(() => api.categories(), []);
+  const categories = useAsync(() => api.postableCategories(), []);
   const [categoryId, setCategoryId] = useState("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -86,6 +86,12 @@ export function NewTopicPage() {
               {categories.status === "error" && (
                 <p className="text-sm text-destructive">分类加载失败</p>
               )}
+              {categories.status === "success" &&
+                categories.data.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    你当前没有可以发布话题的分类。
+                  </p>
+                )}
             </div>
 
             <div className="space-y-1.5">

@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   FileText,
+  Hash,
   LayoutDashboard,
   Megaphone,
   MessageSquare,
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/admin", label: "概览", icon: LayoutDashboard, end: true },
+  { to: "/admin/categories", label: "分类", icon: Hash },
   { to: "/admin/topics", label: "话题", icon: FileText },
   { to: "/admin/posts", label: "回复", icon: MessageSquare },
   { to: "/admin/users", label: "用户", icon: Users },
