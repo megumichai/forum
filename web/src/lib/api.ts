@@ -136,6 +136,7 @@ export interface Page<T> {
 
 export interface TopicQuery {
   category?: string;
+  pinned?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -280,12 +281,18 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
-function toQuery({ category, page = 1, pageSize = 20 }: TopicQuery) {
+function toQuery({
+  category,
+  pinned,
+  page = 1,
+  pageSize = 20,
+}: TopicQuery) {
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
   });
   if (category) params.set("category", category);
+  if (pinned !== undefined) params.set("pinned", String(pinned));
   return params.toString();
 }
 

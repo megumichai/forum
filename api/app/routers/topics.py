@@ -31,6 +31,7 @@ def _get_topic(session: Session, topic_id: int) -> Topic:
 def list_topics(
     session: SessionDep,
     category: str | None = None,
+    pinned: bool | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -41,6 +42,8 @@ def list_topics(
                 select(Category.id).where(Category.slug == category)
             )
         )
+    if pinned is not None:
+        filters.append(Topic.is_pinned == pinned)
 
     total = session.scalar(select(func.count(Topic.id)).where(*filters)) or 0
 

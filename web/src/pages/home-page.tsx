@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ErrorState, TopicListSkeleton } from "@/components/loading";
 import { Pagination } from "@/components/pagination";
+import { PinnedTopics } from "@/components/pinned-topics";
 import { TopicList } from "@/components/topic-list";
 import { TopicListHeader } from "@/components/topic-list-header";
 import { Card } from "@/components/ui/card";
@@ -13,7 +14,7 @@ const PAGE_SIZE = 20;
 export function HomePage() {
   const [page, setPage] = useState(1);
   const topics = useAsync(
-    () => api.topics({ page, pageSize: PAGE_SIZE }),
+    () => api.topics({ page, pageSize: PAGE_SIZE, pinned: false }),
     [page],
   );
 
@@ -30,6 +31,8 @@ export function HomePage() {
           看看社区里正在讨论什么
         </p>
       </div>
+
+      <PinnedTopics />
 
       <Card className="gap-0 py-0">
         <div className="px-4 py-2 sm:px-5">

@@ -6,7 +6,13 @@ import { DetailSkeleton } from "@/components/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -69,19 +75,24 @@ export function NewTopicPage() {
                 分类
               </label>
               <Select
-                id="category"
                 value={categoryId}
-                onChange={(event) => setCategoryId(event.target.value)}
+                onValueChange={setCategoryId}
                 disabled={categories.status !== "success"}
-                required
               >
-                <option value="">选择分类</option>
-                {categories.status === "success" &&
-                  categories.data.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="选择分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.status === "success" &&
+                    categories.data.map((category) => (
+                      <SelectItem
+                        key={category.id}
+                        value={String(category.id)}
+                      >
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
               </Select>
               {categories.status === "error" && (
                 <p className="text-sm text-destructive">分类加载失败</p>

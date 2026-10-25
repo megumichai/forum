@@ -7,6 +7,14 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { ErrorState } from "@/components/loading";
 import { Button } from "@/components/ui/button";
@@ -17,10 +25,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { api, type AdminCategoryStats } from "@/lib/api";
 import { useAsync } from "@/lib/use-async";
 import { formatCount } from "@/lib/utils";
+
+const chartConfig = {
+  topic_count: {
+    label: "话题",
+    color: "var(--chart-1)",
+  },
+  view_count: {
+    label: "浏览",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
 
 export function AdminDashboardPage() {
   const stats = useAsync(() => api.adminStats(), []);
@@ -96,7 +123,7 @@ export function AdminDashboardPage() {
           <Card className="mt-4 gap-0 py-0">
             <CardHeader className="px-5 pt-5">
               <CardTitle className="text-sm">分类分布</CardTitle>
-              <CardDescription>各分类的话题数量与浏览量</CardDescription>
+              <CardDescription>柱状为话题数量，折线为浏览量</CardDescription>
             </CardHeader>
             <CardContent className="mt-4 px-5 pb-5">
               {stats.data.categories.length === 0 ? (
@@ -104,7 +131,7 @@ export function AdminDashboardPage() {
                   暂无分类数据
                 </p>
               ) : (
-                <CategoryBreakdown categories={stats.data.categories} />
+                <CategoryChart categories={stats.data.categories} />
               )}
             </CardContent>
           </Card>
@@ -141,48 +168,64 @@ function StatCard({
   );
 }
 
-function CategoryBreakdown({
+function CategoryChart({
   categories,
 }: {
-  categories: {
-    id: number;
-    name: string;
-    slug: string;
-    topic_count: number;
-    view_count: number;
-  }[];
+  categories: AdminCategoryStats[];
 }) {
-  const maxTopics = Math.max(
-    1,
-    ...categories.map((category) => category.topic_count),
-  );
-
   return (
-    <div className="space-y-4">
-      {categories.map((category) => (
-        <div key={category.id}>
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <Link
-              to={`/c/${category.slug}`}
-              className="font-medium hover:underline"
-            >
-              {category.name}
-            </Link>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {formatCount(category.topic_count)} 话题 ·{" "}
-              {formatCount(category.view_count)} 浏览
-            </span>
-          </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-foreground"
-              style={{
-                width: `${(category.topic_count / maxTopics) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
+    <ChartContainer
+      config={chartConfig}
+      className="h-[320px] w-full"
+    >
+      <ComposedChart
+        accessibilityLayer
+        data={categories}
+        margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+      >
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="name"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          interval={0}
+        />
+        <YAxis
+          yAxisId="topics"
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false}
+          width={32}
+        />
+        <YAxis
+          yAxisId="views"
+          orientation="right"
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false}
+          width={44}
+        />
+        <ChartTooltip
+          cursor={false}
+          content={<ChartTooltipContent />}
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Bar
+          yAxisId="topics"
+          dataKey="topic_count"
+          fill="var(--color-topic_count)"
+          radius={[4, 4, 0, 0]}
+        />
+        <Line
+          yAxisId="views"
+          type="monotone"
+          dataKey="view_count"
+          stroke="var(--color-view_count)"
+          strokeWidth={2}
+          dot={{ r: 3 }}
+        />
+      </ComposedChart>
+    </ChartContainer>
   );
 }

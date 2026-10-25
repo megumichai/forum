@@ -11,7 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api, type AdminUser, type Role } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useAsync } from "@/lib/use-async";
@@ -25,21 +31,21 @@ const ROLE_LABELS: Record<Role, string> = {
   admin: "管理员",
 };
 
-type RoleFilter = Role | "";
+type RoleFilter = Role | "all";
 
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth();
   const [page, setPage] = useState(1);
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const users = useAsync(
     () =>
       api.adminUsers({
         page,
         pageSize: PAGE_SIZE,
         search: search || undefined,
-        role: roleFilter || undefined,
+        role: roleFilter === "all" ? undefined : roleFilter,
       }),
     [page, search, roleFilter],
   );
@@ -88,19 +94,22 @@ export function AdminUsersPage() {
         </div>
         <Select
           value={roleFilter}
-          aria-label="筛选角色"
-          className="w-28"
-          onChange={(event) => {
-            setRoleFilter(event.target.value as RoleFilter);
+          onValueChange={(value) => {
+            setRoleFilter(value as RoleFilter);
             setPage(1);
           }}
         >
-          <option value="">全部角色</option>
-          {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
-            <option key={role} value={role}>
-              {ROLE_LABELS[role]}
-            </option>
-          ))}
+          <SelectTrigger className="w-28" aria-label="筛选角色">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部角色</SelectItem>
+            {(Object.keys(ROLE_LABELS) as Role[]).map((role) => (
+              <SelectItem key={role} value={role}>
+                {ROLE_LABELS[role]}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
         <Button type="submit" variant="outline">
           搜索
@@ -172,19 +181,22 @@ export function AdminUsersPage() {
                         <span>加入于 {formatDate(user.created_at)}</span>
                         <Select
                           value={user.role}
-                          aria-label={`设置 ${user.display_name} 的角色`}
-                          className="w-28"
                           disabled={isSelf || pendingId === user.id}
-                          onChange={(event) =>
-                            handleRoleChange(
-                              user,
-                              event.target.value as Role,
-                            )
+                          onValueChange={(value) =>
+                            handleRoleChange(user, value as Role)
                           }
                         >
-                          <option value="user">用户</option>
-                          <option value="moderator">版主</option>
-                          <option value="admin">管理员</option>
+                          <SelectTrigger
+                            className="w-28"
+                            aria-label={`设置 ${user.display_name} 的角色`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">用户</SelectItem>
+                            <SelectItem value="moderator">版主</SelectItem>
+                            <SelectItem value="admin">管理员</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
                     </article>

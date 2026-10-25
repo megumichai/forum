@@ -12,16 +12,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, type AdminCategory, type Role } from "@/lib/api";
 import { useAsync } from "@/lib/use-async";
 import { formatCount } from "@/lib/utils";
 
-type AccessValue = Role | "";
+type AccessValue = Role | "all";
 
 const ACCESS_OPTIONS: { value: AccessValue; label: string }[] = [
-  { value: "", label: "所有用户" },
+  { value: "all", label: "所有用户" },
   { value: "user", label: "登录用户" },
   { value: "moderator", label: "版主及以上" },
   { value: "admin", label: "仅管理员" },
@@ -38,7 +44,7 @@ export function AdminCategoriesPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [minRole, setMinRole] = useState<AccessValue>("");
+  const [minRole, setMinRole] = useState<AccessValue>("all");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
@@ -55,13 +61,13 @@ export function AdminCategoriesPage() {
         name: name.trim(),
         slug: slug.trim(),
         description: description.trim() || null,
-        min_role: minRole || null,
+        min_role: minRole === "all" ? null : minRole,
       });
       setCreated(category.name);
       setName("");
       setSlug("");
       setDescription("");
-      setMinRole("");
+      setMinRole("all");
       categories.reload();
     } catch (submitError) {
       setCreateError(
@@ -76,7 +82,7 @@ export function AdminCategoriesPage() {
     category: AdminCategory,
     value: AccessValue,
   ) => {
-    const nextRole = value || null;
+    const nextRole = value === "all" ? null : value;
     if (nextRole === category.min_role) return;
 
     setError(null);
@@ -164,20 +170,21 @@ export function AdminCategoriesPage() {
                 发布话题权限
               </label>
               <Select
-                id="category-access"
                 value={minRole}
-                onChange={(event) =>
-                  setMinRole(event.target.value as AccessValue)
+                onValueChange={(value) =>
+                  setMinRole(value as AccessValue)
                 }
               >
-                {ACCESS_OPTIONS.map((option) => (
-                  <option
-                    key={option.value || "public"}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
-                ))}
+                <SelectTrigger id="category-access">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCESS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 发布话题需要登录，未登录访客始终只能浏览
@@ -261,25 +268,25 @@ export function AdminCategoriesPage() {
                   </div>
 
                   <Select
-                    value={category.min_role ?? ""}
-                    aria-label={`设置 ${category.name} 的发布话题权限`}
-                    className="w-36"
+                    value={category.min_role ?? "all"}
                     disabled={pendingId === category.id}
-                    onChange={(event) =>
-                      handleAccessChange(
-                        category,
-                        event.target.value as AccessValue,
-                      )
+                    onValueChange={(value) =>
+                      handleAccessChange(category, value as AccessValue)
                     }
                   >
-                    {ACCESS_OPTIONS.map((option) => (
-                      <option
-                        key={option.value || "public"}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </option>
-                    ))}
+                    <SelectTrigger
+                      className="w-36"
+                      aria-label={`设置 ${category.name} 的发布话题权限`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACCESS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </article>
               ))}

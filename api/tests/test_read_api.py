@@ -44,6 +44,42 @@ def test_list_topics_by_category(client: TestClient) -> None:
     assert response.json()["total"] == 0
 
 
+def test_filter_pinned_topics(client: TestClient) -> None:
+    login = client.post(
+        "/api/auth/login",
+        json={"identifier": "admin", "password": "admin123"},
+    )
+    assert login.status_code == 200
+
+    created = client.post(
+        "/api/topics",
+        json={
+            "category_id": 1,
+            "title": "Pinned topic",
+            "content": "Pinned content",
+        },
+    )
+    assert created.status_code == 201
+    topic_id = created.json()["id"]
+
+    pinned = client.patch(
+        f"/api/topics/{topic_id}", json={"is_pinned": True}
+    )
+    assert pinned.status_code == 200
+
+    pinned_list = client.get(
+        "/api/topics", params={"pinned": True}
+    ).json()
+    assert pinned_list["total"] == 1
+    assert pinned_list["items"][0]["id"] == topic_id
+
+    regular_list = client.get(
+        "/api/topics", params={"pinned": False}
+    ).json()
+    assert regular_list["total"] == 1
+    assert regular_list["items"][0]["title"] == "Hello"
+
+
 def test_get_topic_does_not_increment_views(client: TestClient) -> None:
     first = client.get("/api/topics/1")
     second = client.get("/api/topics/1")

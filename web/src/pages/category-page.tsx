@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ErrorState, TopicListSkeleton } from "@/components/loading";
 import { Pagination } from "@/components/pagination";
+import { PinnedTopics } from "@/components/pinned-topics";
 import { TopicList } from "@/components/topic-list";
 import { TopicListHeader } from "@/components/topic-list-header";
 import { Card } from "@/components/ui/card";
@@ -19,7 +20,13 @@ export function CategoryPage() {
   const [page, setPage] = useState(1);
   const category = useAsync(() => api.category(slug), [slug]);
   const topics = useAsync(
-    () => api.topics({ category: slug, page, pageSize: PAGE_SIZE }),
+    () =>
+      api.topics({
+        category: slug,
+        page,
+        pageSize: PAGE_SIZE,
+        pinned: false,
+      }),
     [slug, page],
   );
 
@@ -64,6 +71,8 @@ export function CategoryPage() {
           )}
         </div>
       </header>
+
+      <PinnedTopics category={slug} />
 
       <Card className="gap-0 py-0">
         <div className="px-4 py-2 sm:px-5">
