@@ -1,4 +1,4 @@
-import { BookOpenText, LogOut, MessageSquare } from "lucide-react";
+import { BookOpenText, LogOut, MessageSquare, PenLine } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,12 @@ export function SiteHeader() {
 
           {!loading && user && (
             <div className="flex items-center gap-1">
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/new">
+                  <PenLine />
+                  发帖
+                </Link>
+              </Button>
               <Link
                 to={`/u/${user.username}`}
                 className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent"

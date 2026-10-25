@@ -1,5 +1,6 @@
-import { Eye, Lock, MessageSquare, Pin } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Eye, Lock, MessageSquare, Pencil, Pin, Trash2 } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { DetailSkeleton, ErrorState } from "@/components/loading";
@@ -7,8 +8,12 @@ import { PostCard } from "@/components/post-card";
 import { RoleBadge } from "@/components/role-badge";
 import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { useAsync } from "@/lib/use-async";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 
@@ -16,6 +21,18 @@ export function TopicPage() {
   const { id = "" } = useParams();
   const topicId = Number(id);
   const topic = useAsync(() => api.topic(topicId), [topicId]);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [topicError, setTopicError] = useState<string | null>(null);
+
+  const [reply, setReply] = useState("");
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const [replying, setReplying] = useState(false);
 
   if (topic.status === "loading") return <DetailSkeleton />;
 
@@ -24,6 +41,68 @@ export function TopicPage() {
   }
 
   const data = topic.data;
+  const staff = user?.role === "admin" || user?.role === "moderator";
+  const canManageTopic = user !== null && (user.id === data.author.id || staff);
+  const canReply = user !== null && (!data.is_locked || staff);
+
+  const startEditing = () => {
+    setEditTitle(data.title);
+    setEditContent(data.content);
+    setTopicError(null);
+    setEditing(true);
+  };
+
+  const handleSaveTopic = async () => {
+    setTopicError(null);
+    setSaving(true);
+    try {
+      await api.updateTopic(topicId, {
+        title: editTitle,
+        content: editContent,
+      });
+      setEditing(false);
+      topic.reload();
+    } catch (saveError) {
+      setTopicError(
+        saveError instanceof Error ? saveError.message : "保存失败",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTopic = async () => {
+    if (!window.confirm("确定删除这个主题吗？此操作无法撤销。")) return;
+
+    setTopicError(null);
+    try {
+      await api.deleteTopic(topicId);
+      navigate("/");
+    } catch (deleteError) {
+      setTopicError(
+        deleteError instanceof Error ? deleteError.message : "删除失败",
+      );
+    }
+  };
+
+  const handleReply = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!reply.trim()) return;
+
+    setReplyError(null);
+    setReplying(true);
+    try {
+      await api.createPost(topicId, { content: reply });
+      setReply("");
+      topic.reload();
+    } catch (submitError) {
+      setReplyError(
+        submitError instanceof Error ? submitError.message : "回复失败",
+      );
+    } finally {
+      setReplying(false);
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -36,24 +115,39 @@ export function TopicPage() {
       />
 
       <header>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to={`/c/${data.category.slug}`}
-            className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors hover:bg-accent"
-          >
-            {data.category.name}
-          </Link>
-          {data.is_pinned && (
-            <Badge variant="secondary" className="gap-1">
-              <Pin />
-              置顶
-            </Badge>
-          )}
-          {data.is_locked && (
-            <Badge variant="outline" className="gap-1">
-              <Lock />
-              已锁定
-            </Badge>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to={`/c/${data.category.slug}`}
+              className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors hover:bg-accent"
+            >
+              {data.category.name}
+            </Link>
+            {data.is_pinned && (
+              <Badge variant="secondary" className="gap-1">
+                <Pin />
+                置顶
+              </Badge>
+            )}
+            {data.is_locked && (
+              <Badge variant="outline" className="gap-1">
+                <Lock />
+                已锁定
+              </Badge>
+            )}
+          </div>
+
+          {canManageTopic && !editing && (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={startEditing}>
+                <Pencil />
+                编辑
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleDeleteTopic}>
+                <Trash2 />
+                删除
+              </Button>
+            </div>
           )}
         </div>
 
@@ -86,35 +180,85 @@ export function TopicPage() {
             {formatCount(data.view_count)}
           </span>
         </div>
+
+        {topicError && (
+          <p className="mt-2 text-sm text-destructive">{topicError}</p>
+        )}
       </header>
 
-      <Card className="mt-5 gap-4 py-5">
-        <CardContent className="px-5 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <Link to={`/u/${data.author.username}`} className="shrink-0">
-              <UserAvatar user={data.author} className="size-8" />
-            </Link>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <Link
-                  to={`/u/${data.author.username}`}
-                  className="text-sm font-medium hover:underline"
-                >
-                  {data.author.display_name}
-                </Link>
-                <RoleBadge role={data.author.role} />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {formatRelativeTime(data.created_at)}
-              </p>
+      {editing ? (
+        <Card className="mt-5 gap-4 py-5">
+          <CardContent className="space-y-3 px-5 sm:px-6">
+            <div className="space-y-1.5">
+              <label htmlFor="edit-title" className="text-sm font-medium">
+                标题
+              </label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                maxLength={200}
+                onChange={(event) => setEditTitle(event.target.value)}
+              />
             </div>
-          </div>
+            <div className="space-y-1.5">
+              <label htmlFor="edit-content" className="text-sm font-medium">
+                正文
+              </label>
+              <Textarea
+                id="edit-content"
+                value={editContent}
+                className="min-h-40"
+                onChange={(event) => setEditContent(event.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveTopic}
+                disabled={saving || !editTitle.trim() || !editContent.trim()}
+              >
+                {saving ? "保存中..." : "保存"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="mt-5 gap-4 py-5">
+          <CardContent className="px-5 sm:px-6">
+            <div className="flex items-center gap-2.5">
+              <Link to={`/u/${data.author.username}`} className="shrink-0">
+                <UserAvatar user={data.author} className="size-8" />
+              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/u/${data.author.username}`}
+                    className="text-sm font-medium hover:underline"
+                  >
+                    {data.author.display_name}
+                  </Link>
+                  <RoleBadge role={data.author.role} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formatRelativeTime(data.created_at)}
+                </p>
+              </div>
+            </div>
 
-          <p className="mt-5 whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground/90">
-            {data.content}
-          </p>
-        </CardContent>
-      </Card>
+            <p className="mt-5 whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground/90">
+              {data.content}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <section className="mt-8">
         <h2 className="text-sm font-medium">
@@ -133,9 +277,56 @@ export function TopicPage() {
         ) : (
           <div className="mt-3 flex flex-col gap-3">
             {data.posts.map((post, index) => (
-              <PostCard key={post.id} post={post} floor={index + 1} />
+              <PostCard
+                key={post.id}
+                post={post}
+                floor={index + 1}
+                onChanged={topic.reload}
+              />
             ))}
           </div>
+        )}
+
+        {canReply ? (
+          <Card className="mt-3 gap-3 py-4">
+            <CardContent className="px-5">
+              <form className="space-y-3" onSubmit={handleReply}>
+                <Textarea
+                  value={reply}
+                  onChange={(event) => setReply(event.target.value)}
+                  className="min-h-28"
+                  placeholder="写下你的回复..."
+                />
+                {replyError && (
+                  <p className="text-sm text-destructive">{replyError}</p>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">请文明发言</p>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={replying || !reply.trim()}
+                  >
+                    {replying ? "发送中..." : "回复"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : !user ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            <Link
+              to="/login"
+              className="font-medium text-foreground hover:underline"
+            >
+              登录
+            </Link>{" "}
+            后参与讨论。
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            该主题已锁定，暂时无法回复。
+          </p>
         )}
       </section>
     </div>

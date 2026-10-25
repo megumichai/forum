@@ -72,6 +72,24 @@ export interface TopicQuery {
   pageSize?: number;
 }
 
+export interface TopicCreateInput {
+  category_id: number;
+  title: string;
+  content: string;
+}
+
+export interface TopicUpdateInput {
+  title?: string;
+  content?: string;
+  category_id?: number;
+  is_pinned?: boolean;
+  is_locked?: boolean;
+}
+
+export interface PostInput {
+  content: string;
+}
+
 export interface LoginInput {
   identifier: string;
   password: string;
@@ -163,6 +181,30 @@ export const api = {
     request<Page<Post>>(
       `/topics/${id}/posts?page=${page}&page_size=${pageSize}`,
     ),
+  createTopic: (payload: TopicCreateInput) =>
+    request<TopicSummary>("/topics", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateTopic: (id: number, payload: TopicUpdateInput) =>
+    request<TopicSummary>(`/topics/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteTopic: (id: number) =>
+    request<void>(`/topics/${id}`, { method: "DELETE" }),
+  createPost: (topicId: number, payload: PostInput) =>
+    request<Post>(`/topics/${topicId}/posts`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updatePost: (id: number, payload: PostInput) =>
+    request<Post>(`/posts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deletePost: (id: number) =>
+    request<void>(`/posts/${id}`, { method: "DELETE" }),
   user: (username: string) =>
     request<UserProfile>(`/users/${encodeURIComponent(username)}`),
   me: () => request<AuthUser>("/auth/me"),
