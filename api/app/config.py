@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         default=f"sqlite:///{(DATA_DIR / 'forum.db').as_posix()}",
         validation_alias="FORUM_DATABASE",
     )
-    secret_key: str = "dev-only-change-me"
+    secret_key: str = "dev-only-secret-key-change-me-in-production"
     session_cookie: str = "forum_session"
     session_max_age: int = 60 * 60 * 24 * 7
     cookie_secure: bool = False

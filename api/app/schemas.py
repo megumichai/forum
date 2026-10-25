@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from .models import UserRole
 
@@ -24,6 +24,30 @@ class UserRead(AuthorRead):
     created_at: datetime
     topic_count: int = 0
     post_count: int = 0
+
+
+class UserPrivate(ORMModel):
+    id: int
+    username: str
+    email: str
+    display_name: str
+    role: UserRole
+    bio: str | None
+    created_at: datetime
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(
+        min_length=3, max_length=32, pattern=r"^[a-zA-Z0-9_]+$"
+    )
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    display_name: str | None = Field(default=None, max_length=64)
+
+
+class LoginRequest(BaseModel):
+    identifier: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class CategoryRead(ORMModel):
