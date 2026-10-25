@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
-from app.db import SessionLocal, engine
-from app.models import Base, Category, Post, Topic, User, UserRole
+from app.db import SessionLocal
+from app.models import Category, Post, Topic, User, UserRole
 from app.security import hash_password
 
 ADMIN_USERNAME = "admin"
@@ -46,7 +46,6 @@ TOPICS = (
 
 
 def seed() -> None:
-    Base.metadata.create_all(engine)
     with SessionLocal() as session:
         admin = session.scalar(
             select(User).where(User.username == ADMIN_USERNAME)
