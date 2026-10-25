@@ -42,6 +42,7 @@ export function TopicPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pinning, setPinning] = useState(false);
   const [topicError, setTopicError] = useState<string | null>(null);
 
   const [reply, setReply] = useState("");
@@ -115,6 +116,21 @@ export function TopicPage() {
       setTopicError(
         deleteError instanceof Error ? deleteError.message : "删除失败",
       );
+    }
+  };
+
+  const handleTogglePin = async () => {
+    setTopicError(null);
+    setPinning(true);
+    try {
+      await api.updateTopic(topicId, { is_pinned: !data.is_pinned });
+      topic.reload();
+    } catch (pinError) {
+      setTopicError(
+        pinError instanceof Error ? pinError.message : "操作失败",
+      );
+    } finally {
+      setPinning(false);
     }
   };
 
@@ -195,6 +211,17 @@ export function TopicPage() {
 
           {canManageTopic && !editing && (
             <div className="flex items-center gap-1">
+              {staff && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleTogglePin}
+                  disabled={pinning}
+                >
+                  <Pin />
+                  {data.is_pinned ? "取消置顶" : "置顶"}
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={startEditing}>
                 <Pencil />
                 编辑
@@ -363,13 +390,13 @@ export function TopicPage() {
         )}
 
         {canReply ? (
-          <Card className="mt-3 gap-3 py-4">
+          <Card className="sticky bottom-0 z-20 mt-3 gap-3 border bg-card py-4">
             <CardContent className="px-5">
               <form className="space-y-3" onSubmit={handleReply}>
                 <Textarea
                   value={reply}
                   onChange={(event) => setReply(event.target.value)}
-                  className="min-h-28"
+                  className="min-h-20"
                   placeholder="写下你的回复..."
                 />
                 {replyError && (

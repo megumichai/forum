@@ -175,7 +175,14 @@ def update_topic(
     if payload.is_locked is not None:
         topic.is_locked = payload.is_locked
 
-    topic.updated_at = utcnow()
+    content_changed = (
+        payload.title is not None
+        or payload.content is not None
+        or payload.category_id is not None
+    )
+    if content_changed:
+        topic.updated_at = utcnow()
+
     session.commit()
 
     reply_count = (

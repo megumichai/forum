@@ -20,6 +20,7 @@ TOPICS = (
         "欢迎来到论坛",
         "欢迎加入！在这里介绍一下你自己，或者开始第一个话题吧。",
         ("有任何问题都可以在这里留言。",),
+        True,
     ),
     (
         "general",
@@ -29,18 +30,21 @@ TOPICS = (
             "Python + FastAPI，前端用 Preact。",
             "数据库这边刚换成 SQLAlchemy 2.0。",
         ),
+        False,
     ),
     (
         "general",
         "周末有什么推荐的电影？",
         "最近想找几部轻松一点的电影看看。",
         ("推荐《心灵奇旅》，很适合放松。",),
+        False,
     ),
     (
         "tech",
         "SQLAlchemy 2.0 的写法",
         "Mapped 和 mapped_column 的类型提示完整了很多。",
         ("同意，配合 dataclass 风格的模型更清晰。",),
+        False,
     ),
 )
 
@@ -80,7 +84,7 @@ def seed() -> None:
                 print(f"Category '{name}' already exists.")
             categories[slug] = category
 
-        for slug, title, content, replies in TOPICS:
+        for slug, title, content, replies, pinned in TOPICS:
             category = categories[slug]
             topic = session.scalar(
                 select(Topic).where(
@@ -97,6 +101,7 @@ def seed() -> None:
                 author_id=admin.id,
                 title=title,
                 content=content,
+                is_pinned=pinned,
             )
             session.add(topic)
             session.flush()
