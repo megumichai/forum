@@ -1,11 +1,25 @@
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StringConstraints,
+)
 
 from .models import UserRole
 
 T = TypeVar("T")
+
+Title = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
+]
+Content = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=50000),
+]
 
 
 class ORMModel(BaseModel):
@@ -48,6 +62,28 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=128)
+
+
+class TopicCreate(BaseModel):
+    category_id: int
+    title: Title
+    content: Content
+
+
+class TopicUpdate(BaseModel):
+    title: Title | None = None
+    content: Content | None = None
+    category_id: int | None = None
+    is_pinned: bool | None = None
+    is_locked: bool | None = None
+
+
+class PostCreate(BaseModel):
+    content: Content
+
+
+class PostUpdate(BaseModel):
+    content: Content
 
 
 class CategoryRead(ORMModel):

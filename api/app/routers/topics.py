@@ -1,12 +1,29 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
-from ..deps import SessionDep
+from ..deps import CurrentUser, SessionDep
 from ..models import Category, Post, Topic
-from ..schemas import Page, PostRead, TopicDetail, TopicSummary
+from ..models.base import utcnow
+from ..permissions import can_manage, is_staff
+from ..schemas import (
+    Page,
+    PostCreate,
+    PostRead,
+    TopicCreate,
+    TopicDetail,
+    TopicSummary,
+    TopicUpdate,
+)
 
 router = APIRouter(prefix="/topics", tags=["topics"])
+
+
+def _get_topic(session: Session, topic_id: int) -> Topic:
+    topic = session.get(Topic, topic_id)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return topic
 
 
 @router.get("", response_model=Page[TopicSummary])
@@ -94,3 +111,100 @@ def list_topic_posts(
         .limit(page_size)
     ).all()
     return Page(items=list(posts), total=total, page=page, page_size=page_size)
+
+
+@router.post(
+    "", response_model=TopicSummary, status_code=status.HTTP_201_CREATED
+)
+def create_topic(
+    payload: TopicCreate, session: SessionDep, user: CurrentUser
+) -> Topic:
+    category = session.get(Category, payload.category_id)
+    if category is None:
+        raise HTTPException(status_code=404, detail="Category not found")
+
+    topic = Topic(
+        category=category,
+        author=user,
+        title=payload.title,
+        content=payload.content,
+    )
+    session.add(topic)
+    session.commit()
+    return topic
+
+
+@router.patch("/{topic_id}", response_model=TopicSummary)
+def update_topic(
+    topic_id: int,
+    payload: TopicUpdate,
+    session: SessionDep,
+    user: CurrentUser,
+) -> TopicSummary:
+    topic = _get_topic(session, topic_id)
+    if not can_manage(user, topic.author_id):
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    manages_flags = payload.is_pinned is not None or payload.is_locked is not None
+    if manages_flags and not is_staff(user):
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    if payload.title is not None:
+        topic.title = payload.title
+    if payload.content is not None:
+        topic.content = payload.content
+    if payload.category_id is not None:
+        category = session.get(Category, payload.category_id)
+        if category is None:
+            raise HTTPException(status_code=404, detail="Category not found")
+        topic.category = category
+    if payload.is_pinned is not None:
+        topic.is_pinned = payload.is_pinned
+    if payload.is_locked is not None:
+        topic.is_locked = payload.is_locked
+
+    session.commit()
+
+    reply_count = (
+        session.scalar(
+            select(func.count(Post.id)).where(Post.topic_id == topic.id)
+        )
+        or 0
+    )
+    return TopicSummary.model_validate(topic).model_copy(
+        update={"reply_count": reply_count}
+    )
+
+
+@router.delete("/{topic_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_topic(
+    topic_id: int, session: SessionDep, user: CurrentUser
+) -> None:
+    topic = _get_topic(session, topic_id)
+    if not can_manage(user, topic.author_id):
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    session.delete(topic)
+    session.commit()
+
+
+@router.post(
+    "/{topic_id}/posts",
+    response_model=PostRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_reply(
+    topic_id: int,
+    payload: PostCreate,
+    session: SessionDep,
+    user: CurrentUser,
+) -> Post:
+    topic = _get_topic(session, topic_id)
+    if topic.is_locked and not is_staff(user):
+        raise HTTPException(status_code=409, detail="Topic is locked")
+
+    post = Post(topic=topic, author=user, content=payload.content)
+    session.add(post)
+    topic.updated_at = utcnow()
+    session.commit()
+    return post
