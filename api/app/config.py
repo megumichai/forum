@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         "http://localhost:4173,http://127.0.0.1:4173,"
         "https://forum.do.netlify.app"
     )
+    auto_migrate: bool = True
+    initial_admin_username: str = "admin"
+    initial_admin_email: str = "admin@example.com"
+    initial_admin_password: str | None = None
 
     @property
     def allowed_origins(self) -> list[str]:

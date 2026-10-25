@@ -1,4 +1,8 @@
+import os
 from collections.abc import Iterator
+
+os.environ["FORUM_AUTO_MIGRATE"] = "false"
+os.environ["FORUM_INITIAL_ADMIN_PASSWORD"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
