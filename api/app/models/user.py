@@ -1,9 +1,14 @@
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
+
+if TYPE_CHECKING:
+    from .post import Post
+    from .topic import Topic
 
 
 class UserRole(StrEnum):
@@ -30,3 +35,10 @@ class User(BaseModel):
         nullable=False,
     )
     bio: Mapped[str | None] = mapped_column(Text)
+
+    topics: Mapped[list["Topic"]] = relationship(
+        back_populates="author", passive_deletes=True
+    )
+    posts: Mapped[list["Post"]] = relationship(
+        back_populates="author", passive_deletes=True
+    )
