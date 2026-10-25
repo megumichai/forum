@@ -1,4 +1,14 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const API_ORIGIN = "https://forum.fastapicloud.dev";
+
+export const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.PROD ? `${API_ORIGIN}/api` : "/api");
+
+export const API_DOCS_URL =
+  import.meta.env.VITE_API_DOCS_URL ??
+  (import.meta.env.PROD
+    ? `${API_ORIGIN}/docs`
+    : "http://127.0.0.1:8000/docs");
 
 export type Role = "user" | "moderator" | "admin";
 

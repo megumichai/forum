@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 
@@ -18,14 +18,27 @@ from ..security import create_access_token, hash_password, verify_password
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _set_session_cookie(response: Response, user: User) -> None:
+def _is_secure_request(request: Request) -> bool:
+    if settings.cookie_secure:
+        return True
+    forwarded = request.headers.get("x-forwarded-proto", "")
+    return (
+        request.url.scheme == "https"
+        or forwarded.split(",")[0].strip().lower() == "https"
+    )
+
+
+def _set_session_cookie(
+    response: Response, user: User, request: Request
+) -> None:
+    secure = _is_secure_request(request)
     response.set_cookie(
         key=settings.session_cookie,
         value=create_access_token(user.id),
         max_age=settings.session_max_age,
         httponly=True,
-        secure=settings.cookie_secure,
-        samesite="lax",
+        secure=secure,
+        samesite="none" if secure else "lax",
         path="/",
     )
 
@@ -34,7 +47,10 @@ def _set_session_cookie(response: Response, user: User) -> None:
     "/register", response_model=UserPrivate, status_code=status.HTTP_201_CREATED
 )
 def register(
-    payload: RegisterRequest, response: Response, session: SessionDep
+    payload: RegisterRequest,
+    response: Response,
+    request: Request,
+    session: SessionDep,
 ) -> User:
     username = payload.username.strip()
     email = str(payload.email).lower()
@@ -67,13 +83,16 @@ def register(
             detail="用户名或邮箱已被使用",
         ) from None
 
-    _set_session_cookie(response, user)
+    _set_session_cookie(response, user, request)
     return user
 
 
 @router.post("/login", response_model=UserPrivate)
 def login(
-    payload: LoginRequest, response: Response, session: SessionDep
+    payload: LoginRequest,
+    response: Response,
+    request: Request,
+    session: SessionDep,
 ) -> User:
     identifier = payload.identifier.strip()
     user = session.scalar(
@@ -90,18 +109,19 @@ def login(
             detail="用户名或密码错误",
         )
 
-    _set_session_cookie(response, user)
+    _set_session_cookie(response, user, request)
     return user
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response) -> None:
+def logout(response: Response, request: Request) -> None:
+    secure = _is_secure_request(request)
     response.delete_cookie(
         settings.session_cookie,
         path="/",
-        secure=settings.cookie_secure,
+        secure=secure,
         httponly=True,
-        samesite="lax",
+        samesite="none" if secure else "lax",
     )
 
 

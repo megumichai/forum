@@ -187,3 +187,23 @@ def test_list_user_posts(client: TestClient) -> None:
 def test_list_missing_user_content(client: TestClient) -> None:
     assert client.get("/api/users/missing/topics").status_code == 404
     assert client.get("/api/users/missing/posts").status_code == 404
+
+
+def test_cors_allows_frontend_origin(client: TestClient) -> None:
+    response = client.options(
+        "/api/topics/1",
+        headers={
+            "Origin": "https://forum.do.netlify.app",
+            "Access-Control-Request-Method": "PATCH",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.headers["access-control-allow-origin"]
+        == "https://forum.do.netlify.app"
+    )
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "PATCH" in response.headers["access-control-allow-methods"]
+    assert "content-type" in response.headers["access-control-allow-headers"].lower()

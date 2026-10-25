@@ -10,6 +10,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
+import { API_DOCS_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +65,7 @@ export function SiteHeader() {
             size="sm"
             className="hidden sm:inline-flex"
           >
-            <a href="/api/docs" target="_blank" rel="noreferrer">
+            <a href={API_DOCS_URL} target="_blank" rel="noreferrer">
               <BookOpenText />
               API
             </a>

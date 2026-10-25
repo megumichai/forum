@@ -27,6 +27,12 @@ pnpm dev
 
 前端通过 Vite 代理把 `/api` 转发到 `http://127.0.0.1:8000`。
 
+## 部署
+
+- 生产构建默认请求 `https://forum.fastapicloud.dev/api`，可通过 `VITE_API_BASE_URL` 覆盖。
+- 后端允许的跨域来源通过 `FORUM_CORS_ORIGINS` 配置，多个来源用逗号分隔。
+- HTTPS 部署会自动使用 `Secure` + `SameSite=None` Cookie，也可以通过 `FORUM_COOKIE_SECURE=true` 强制启用。
+
 ## 数据库
 
 数据库结构由 Alembic 管理：

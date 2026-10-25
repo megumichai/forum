@@ -23,6 +23,19 @@ class Settings(BaseSettings):
     session_cookie: str = "forum_session"
     session_max_age: int = 60 * 60 * 24 * 7
     cookie_secure: bool = False
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:4173,http://127.0.0.1:4173,"
+        "https://forum.do.netlify.app"
+    )
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     @field_validator("database_url")
     @classmethod
