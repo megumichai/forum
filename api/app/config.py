@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
 
 
 class Settings(BaseSettings):
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Forum"
     database_url: str = Field(
-        default=f"sqlite:///{(BASE_DIR / 'data' / 'forum.db').as_posix()}",
+        default=f"sqlite:///{(DATA_DIR / 'forum.db').as_posix()}",
         validation_alias="FORUM_DATABASE",
     )
     secret_key: str = "dev-only-change-me"
@@ -30,7 +31,7 @@ class Settings(BaseSettings):
             return value
         path = Path(value)
         if not path.is_absolute():
-            path = BASE_DIR / path
+            path = DATA_DIR / path
         return f"sqlite:///{path.as_posix()}"
 
 
