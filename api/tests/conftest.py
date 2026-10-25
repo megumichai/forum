@@ -42,7 +42,12 @@ def session_factory() -> Iterator[sessionmaker[Session]]:
             slug="general",
             description="General discussion",
         )
-        session.add_all([admin, category])
+        announcements = Category(
+            name="站务公告",
+            slug="announcements",
+            description="Site announcements",
+        )
+        session.add_all([admin, category, announcements])
         session.flush()
 
         topic = Topic(

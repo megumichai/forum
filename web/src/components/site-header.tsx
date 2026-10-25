@@ -1,4 +1,10 @@
-import { BookOpenText, LogOut, MessageSquare, PenLine } from "lucide-react";
+import {
+  BookOpenText,
+  LogOut,
+  MessageSquare,
+  PenLine,
+  Shield,
+} from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -68,6 +74,19 @@ export function SiteHeader() {
 
           {!loading && user && (
             <div className="flex items-center gap-1">
+              {user.role === "admin" && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden md:inline-flex"
+                >
+                  <Link to="/admin">
+                    <Shield />
+                    管理
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="ghost" size="sm">
                 <Link to="/new">
                   <PenLine />

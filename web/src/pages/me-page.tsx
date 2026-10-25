@@ -4,6 +4,7 @@ import {
   NotebookText,
   Pencil,
   Settings,
+  Shield,
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
@@ -79,10 +80,18 @@ export function MePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline" size="sm">
                 <Link to={`/u/${user.username}`}>查看主页</Link>
               </Button>
+              {user.role === "admin" && (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/admin">
+                    <Shield />
+                    管理后台
+                  </Link>
+                </Button>
+              )}
               <Button asChild size="sm">
                 <Link to="/settings">
                   <Settings />
@@ -99,7 +108,7 @@ export function MePage() {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <NotebookText className="size-3.5" />
-              主题 {counts ? counts.topics : "—"}
+              话题 {counts ? counts.topics : "—"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <MessageSquare className="size-3.5" />
@@ -115,7 +124,7 @@ export function MePage() {
           count={counts?.topics}
           onClick={() => setTab("topics")}
         >
-          我的主题
+          我的话题
         </TabButton>
         <TabButton
           active={tab === "replies"}
@@ -182,7 +191,7 @@ function MyTopics({
   const [pendingId, setPendingId] = useState<number | null>(null);
 
   const handleDelete = async (topicId: number) => {
-    if (!window.confirm("确定删除这个主题吗？此操作无法撤销。")) return;
+    if (!window.confirm("确定删除这个话题吗？此操作无法撤销。")) return;
 
     setError(null);
     setPendingId(topicId);
@@ -225,8 +234,8 @@ function MyTopics({
 
           {topics.data.items.length === 0 ? (
             <EmptyState
-              title="还没有发布主题"
-              description="你发布的主题会显示在这里。"
+              title="还没有发布话题"
+              description="你发布的话题会显示在这里。"
             />
           ) : (
             <div className="divide-y">

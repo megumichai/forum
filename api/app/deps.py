@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .db import get_session
-from .models import User
+from .models import User, UserRole
 from .security import decode_access_token
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -24,3 +24,15 @@ def get_current_user(request: Request, session: SessionDep) -> User:
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_current_admin(user: CurrentUser) -> User:
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+
+
+AdminUser = Annotated[User, Depends(get_current_admin)]

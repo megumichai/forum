@@ -163,3 +163,58 @@ class Page(BaseModel, Generic[T]):
     total: int
     page: int
     page_size: int
+
+
+class AdminUserRead(ORMModel):
+    id: int
+    username: str
+    email: str
+    display_name: str
+    avatar_url: str | None
+    role: UserRole
+    created_at: datetime
+    topic_count: int = 0
+    post_count: int = 0
+
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+
+
+class AdminTopicUpdate(BaseModel):
+    is_pinned: bool | None = None
+    is_locked: bool | None = None
+    category_id: int | None = None
+
+
+class AdminPostRead(ORMModel):
+    id: int
+    content: str
+    created_at: datetime
+    updated_at: datetime
+    author: AuthorRead
+    topic: TopicRef
+
+
+class AnnouncementCreate(BaseModel):
+    title: Title
+    content: Content
+
+
+class CategoryStats(BaseModel):
+    id: int
+    name: str
+    slug: str
+    topic_count: int
+    view_count: int
+
+
+class AdminStats(BaseModel):
+    users: int
+    topics: int
+    posts: int
+    views: int
+    new_users_7d: int
+    new_topics_7d: int
+    new_posts_7d: int
+    categories: list[CategoryStats]

@@ -63,7 +63,7 @@ export function UserPage() {
             <div className="rounded-md border p-4">
               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <NotebookText className="size-3.5" />
-                主题
+                话题
               </p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">
                 {data.topic_count}

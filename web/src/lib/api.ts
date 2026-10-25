@@ -28,6 +28,49 @@ export interface UserProfile extends Author {
   post_count: number;
 }
 
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string;
+  display_name: string;
+  avatar_url: string | null;
+  role: Role;
+  created_at: string;
+  topic_count: number;
+  post_count: number;
+}
+
+export interface AdminPost {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  author: Author;
+  topic: {
+    id: number;
+    title: string;
+  };
+}
+
+export interface AdminCategoryStats {
+  id: number;
+  name: string;
+  slug: string;
+  topic_count: number;
+  view_count: number;
+}
+
+export interface AdminStats {
+  users: number;
+  topics: number;
+  posts: number;
+  views: number;
+  new_users_7d: number;
+  new_topics_7d: number;
+  new_posts_7d: number;
+  categories: AdminCategoryStats[];
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -86,6 +129,31 @@ export interface TopicQuery {
   category?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface AdminUserQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: Role;
+}
+
+export interface AdminContentQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  category?: string;
+}
+
+export interface AdminTopicUpdateInput {
+  is_pinned?: boolean;
+  is_locked?: boolean;
+  category_id?: number;
+}
+
+export interface AnnouncementInput {
+  title: string;
+  content: string;
 }
 
 export interface TopicCreateInput {
@@ -245,6 +313,66 @@ export const api = {
     request<Page<UserPost>>(
       `/users/${encodeURIComponent(username)}/posts?page=${page}&page_size=${pageSize}`,
     ),
+  adminStats: () => request<AdminStats>("/admin/stats"),
+  adminUsers: ({
+    page = 1,
+    pageSize = 20,
+    search,
+    role,
+  }: AdminUserQuery = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (search) params.set("search", search);
+    if (role) params.set("role", role);
+    return request<Page<AdminUser>>(`/admin/users?${params.toString()}`);
+  },
+  adminTopics: ({
+    page = 1,
+    pageSize = 20,
+    search,
+    category,
+  }: AdminContentQuery = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (search) params.set("search", search);
+    if (category) params.set("category", category);
+    return request<Page<TopicSummary>>(`/admin/topics?${params.toString()}`);
+  },
+  adminPosts: ({
+    page = 1,
+    pageSize = 20,
+    search,
+  }: AdminContentQuery = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (search) params.set("search", search);
+    return request<Page<AdminPost>>(`/admin/posts?${params.toString()}`);
+  },
+  adminUpdateTopic: (id: number, payload: AdminTopicUpdateInput) =>
+    request<TopicSummary>(`/admin/topics/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  adminDeleteTopic: (id: number) =>
+    request<void>(`/admin/topics/${id}`, { method: "DELETE" }),
+  adminDeletePost: (id: number) =>
+    request<void>(`/admin/posts/${id}`, { method: "DELETE" }),
+  adminUpdateUserRole: (id: number, role: Role) =>
+    request<AdminUser>(`/admin/users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+  adminCreateAnnouncement: (payload: AnnouncementInput) =>
+    request<TopicSummary>("/admin/announcements", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   me: () => request<AuthUser>("/auth/me"),
   updateProfile: (payload: ProfileUpdateInput) =>
     request<AuthUser>("/auth/me", {

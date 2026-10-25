@@ -106,7 +106,7 @@ export function TopicPage() {
   };
 
   const handleDeleteTopic = async () => {
-    if (!window.confirm("确定删除这个主题吗？此操作无法撤销。")) return;
+    if (!window.confirm("确定删除这个话题吗？此操作无法撤销。")) return;
 
     setTopicError(null);
     try {
@@ -427,7 +427,7 @@ export function TopicPage() {
           </p>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            该主题已锁定，暂时无法回复。
+            该话题已锁定，暂时无法回复。
           </p>
         )}
       </section>

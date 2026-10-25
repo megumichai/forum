@@ -53,10 +53,10 @@ export function NewTopicPage() {
   return (
     <div className="mx-auto w-full max-w-2xl">
       <Breadcrumbs
-        items={[{ label: "首页", to: "/" }, { label: "发布主题" }]}
+        items={[{ label: "首页", to: "/" }, { label: "发布话题" }]}
       />
 
-      <h1 className="text-xl font-semibold tracking-tight">发布主题</h1>
+      <h1 className="text-xl font-semibold tracking-tight">发布话题</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         分享一个想法，或者向社区提问
       </p>
@@ -97,7 +97,7 @@ export function NewTopicPage() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={200}
-                placeholder="一句话说明你的主题"
+                placeholder="一句话说明你的话题"
                 required
               />
             </div>
