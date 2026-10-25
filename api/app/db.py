@@ -1,5 +1,7 @@
+from collections.abc import Iterator
+
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from .config import settings
 
@@ -20,3 +22,8 @@ if _is_sqlite:
 
 
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_session() -> Iterator[Session]:
+    with SessionLocal() as session:
+        yield session

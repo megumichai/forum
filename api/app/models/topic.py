@@ -32,4 +32,5 @@ class Topic(BaseModel):
         back_populates="topic",
         cascade="all, delete-orphan",
         passive_deletes=True,
+        order_by="Post.created_at",
     )
