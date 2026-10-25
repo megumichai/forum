@@ -1,0 +1,30 @@
+# Python
+api/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Database
+api/data/*.db
+api/data/*.db-wal
+api/data/*.db-shm
+
+# Environment
+api/.env
+.env
+.env.*
+!.env.example
+
+# Node
+web/node_modules/
+web/dist/
+web/.vite/
+web/openapi.json
+*.tsbuildinfo
+
+# Editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
